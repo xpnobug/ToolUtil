@@ -1,0 +1,352 @@
+package com.reai.toolutil.githubtool.util;
+
+import com.vladsch.flexmark.ext.autolink.AutolinkExtension;
+import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
+import com.vladsch.flexmark.ext.gfm.tasklist.TaskListExtension;
+import com.vladsch.flexmark.ext.tables.TablesExtension;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.util.data.DataHolder;
+import com.vladsch.flexmark.util.data.MutableDataSet;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.b3log.latke.Latkes;
+import org.b3log.latke.ioc.BeanManager;
+import org.b3log.latke.logging.Level;
+import org.b3log.latke.logging.Logger;
+import org.b3log.latke.service.LangPropsService;
+import org.b3log.latke.util.Callstacks;
+import org.b3log.latke.util.Stopwatchs;
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.parser.Parser;
+import org.jsoup.safety.Whitelist;
+import org.jsoup.select.NodeVisitor;
+
+/**
+ * Markdown
+ */
+public final class Markdowns {
+
+    /**
+     * Logger.
+     */
+    private static final Logger LOGGER = Logger.getLogger(Markdowns.class);
+
+    /**
+     * Markdown cache.
+     */
+    private static final Map<String, JSONObject> MD_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * Markdown to HTML timeout.
+     */
+    private static final int MD_TIMEOUT = 10000;
+
+    /**
+     * Built-in MD engine options.
+     */
+    private static final DataHolder OPTIONS = new MutableDataSet().
+        set(com.vladsch.flexmark.parser.Parser.EXTENSIONS, Arrays.asList(
+            TablesExtension.create(),
+            TaskListExtension.create(),
+            StrikethroughExtension.create(),
+            AutolinkExtension.create())).
+        set(HtmlRenderer.SOFT_BREAK, "<br />\n");
+
+    /**
+     * Built-in MD engine parser.
+     */
+    private static final com.vladsch.flexmark.parser.Parser PARSER =
+        com.vladsch.flexmark.parser.Parser.builder(OPTIONS).build();
+
+    /**
+     * Built-in MD engine HTML renderer.
+     */
+    private static final HtmlRenderer RENDERER = HtmlRenderer.builder(OPTIONS).build();
+
+    /**
+     * Lute engine serve path. https://github.com/b3log/lute-http
+     */
+    public static String LUTE_ENGINE_URL = "http://localhost:8249";
+
+    /**
+     * Whether Lute is available.
+     */
+    public static boolean LUTE_AVAILABLE = false;
+
+    public static boolean SHOW_CODE_BLOCK_LN = false;
+    public static boolean FOOTNOTES = true;
+    public static boolean SHOW_TOC = true;
+    public static boolean AUTO_SPACE = false;
+    public static boolean FIX_TERM_TYPO = false;
+    public static boolean CHINESE_PUNCT = false;
+    public static boolean IMADAOM = false;
+    public static boolean PARAGRAPH_BEGINNING_SPACE = false;
+
+    /**
+     * Lute status
+     */
+    private static boolean LUTE_OK = false;
+
+    /**
+     * Private constructor.
+     */
+    private Markdowns() {
+    }
+
+    /**
+     * Clears cache.
+     */
+    public static void clearCache() {
+        MD_CACHE.clear();
+    }
+
+    /**
+     * Cleans the specified HTML.
+     *
+     * @param html the specified HTML
+     * @return html
+     */
+    public static String clean(final String html) {
+        final Whitelist whitelist = Whitelist.relaxed();
+        // 允许代码块语言高亮信息
+        whitelist.addAttributes("pre", "class").
+            addAttributes("div", "class", "data-code").
+            addAttributes("span", "class").
+            addAttributes("code", "class").
+            addAttributes("img", "class");
+        final Document.OutputSettings outputSettings = new Document.OutputSettings();
+        outputSettings.prettyPrint(false);
+        return Jsoup.clean(html, Latkes.getServePath(), whitelist, outputSettings);
+    }
+
+    /**
+     * Converts the specified markdown text to HTML.
+     *
+     * @param markdownText the specified markdown text
+     * @return converted HTML, returns an empty string "" if the specified markdown text is "" or
+     * {@code null}, returns 'markdownErrorLabel' if exception
+     */
+    public static String toHTML(final String markdownText) {
+        if (StringUtils.isBlank(markdownText)) {
+            return "";
+        }
+
+        final String cachedHTML = getHTML(markdownText);
+        if (null != cachedHTML) {
+            return cachedHTML;
+        }
+
+        final LangPropsService langPropsService = BeanManager.getInstance()
+            .getReference(LangPropsService.class);
+
+        final ExecutorService pool = Executors.newSingleThreadExecutor();
+        final long[] threadId = new long[1];
+
+        final Callable<String> call = () -> {
+            threadId[0] = Thread.currentThread().getId();
+
+            String html = null;
+            if (LUTE_AVAILABLE) {
+                try {
+                    html = toHtmlByLute(markdownText);
+                    if (!LUTE_OK) {
+                        LOGGER.log(Level.INFO, "Lute-HTTP To HTML successful.");
+                        LUTE_OK = true;
+                    } else {
+                        LOGGER.log(Level.DEBUG, "Lute-HTTP To HTML successful.");
+                    }
+                } catch (final Exception e) {
+                    LOGGER.log(Level.WARN,
+                        "Failed to use [Lute] for markdown, Using FlexMark Instead [md="
+                            + StringUtils.substring(markdownText, 0, 256) + "]: " + e.getMessage());
+                }
+            }
+
+            if (StringUtils.isBlank(html)) {
+                html = toHtmlByFlexmark(markdownText);
+            }
+
+            if (!StringUtils.startsWith(html, "<p>")) {
+                html = "<p>" + html + "</p>";
+            }
+
+            final Document doc = Jsoup.parseBodyFragment(html);
+            doc.select("a").forEach(a -> {
+                final String src = a.attr("href");
+                if (!StringUtils.startsWithIgnoreCase(src, Latkes.getServePath())
+                    && !StringUtils.startsWithIgnoreCase(src, "#")) {
+                    a.attr("target", "_blank");
+                }
+                a.removeAttr("id");
+            });
+
+            final List<Node> toRemove = new ArrayList<>();
+            doc.traverse(new NodeVisitor() {
+                @Override
+                public void head(final Node node, int depth) {
+                    if (node instanceof org.jsoup.nodes.TextNode) {
+                        final org.jsoup.nodes.TextNode textNode = (org.jsoup.nodes.TextNode) node;
+                        final Node parent = textNode.parent();
+
+                        if (parent instanceof Element) {
+                            final Element parentElem = (Element) parent;
+                            if (parentElem.tagName().equals("code") || parentElem.tagName()
+                                .equals("pre")) {
+                                return;
+                            }
+
+                            if (parentElem.tagName().equals("span")
+                                && StringUtils.startsWithIgnoreCase(parentElem.attr("class"),
+                                "hljs")) {
+                                return;
+                            }
+
+                            String text = textNode.getWholeText();
+                            text = Emotions.convert(text);
+                            if (text.contains("@<a href=") || text.contains("<img")) {
+                                final List<Node> nodes = Parser.parseFragment(text, parentElem, "");
+                                final int index = textNode.siblingIndex();
+                                parentElem.insertChildren(index, nodes);
+                                toRemove.add(node);
+                            } else {
+                                textNode.text(text);
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void tail(Node node, int depth) {
+                }
+            });
+
+            toRemove.forEach(Node::remove);
+
+            doc.outputSettings().prettyPrint(false);
+
+            String ret = doc.body().html();
+            ret = StringUtils.trim(ret);
+            ret = Images.qiniuImgProcessing(ret);
+
+            // cache it
+            putHTML(markdownText, ret);
+
+            return ret;
+        };
+
+        Stopwatchs.start("Md to HTML");
+        try {
+            final Future<String> future = pool.submit(call);
+
+            return future.get(MD_TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (final TimeoutException e) {
+            LOGGER.log(Level.ERROR, "Markdown timeout [md=" + markdownText + "]");
+            Callstacks.printCallstack(Level.ERROR, new String[]{"org.b3log"}, null);
+
+            final Set<Thread> threads = Thread.getAllStackTraces().keySet();
+            for (final Thread thread : threads) {
+                if (thread.getId() == threadId[0]) {
+                    thread.stop();
+
+                    break;
+                }
+            }
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Markdown failed [md=" + markdownText + "]", e);
+        } finally {
+            pool.shutdownNow();
+
+            Stopwatchs.end();
+        }
+
+        return langPropsService.get("contentRenderFailedLabel");
+    }
+
+    public static String toHtmlByLute(final String markdownText) throws Exception {
+        final URL url = new URL(LUTE_ENGINE_URL);
+        final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestProperty("X-CodeSyntaxHighlightLineNum",
+            String.valueOf(Markdowns.SHOW_CODE_BLOCK_LN));
+        conn.setRequestProperty("X-Footnotes", String.valueOf(Markdowns.FOOTNOTES));
+        conn.setRequestProperty("X-ToC", String.valueOf(Markdowns.SHOW_TOC));
+        conn.setRequestProperty("X-AutoSpace", String.valueOf(Markdowns.AUTO_SPACE));
+        conn.setRequestProperty("X-FixTermTypo", String.valueOf(Markdowns.FIX_TERM_TYPO));
+        conn.setRequestProperty("X-ChinesePunct", String.valueOf(Markdowns.CHINESE_PUNCT));
+        conn.setRequestProperty("X-IMADAOM", String.valueOf(Markdowns.IMADAOM));
+        conn.setRequestProperty("X-ParagraphBeginningSpace",
+            String.valueOf(Markdowns.PARAGRAPH_BEGINNING_SPACE));
+        conn.setRequestProperty("X-HeadingID", "true");
+        conn.setConnectTimeout(100);
+        conn.setReadTimeout(3000);
+        conn.setDoOutput(true);
+
+        try (final OutputStream outputStream = conn.getOutputStream()) {
+            IOUtils.write(markdownText, outputStream, "UTF-8");
+        }
+
+        String ret;
+        try (final InputStream inputStream = conn.getInputStream()) {
+            ret = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        }
+
+        conn.disconnect();
+        return ret;
+    }
+
+    private static String toHtmlByFlexmark(final String markdownText) {
+        com.vladsch.flexmark.util.ast.Node document = PARSER.parse(markdownText);
+
+        return RENDERER.render(document);
+    }
+
+    /**
+     * Gets HTML for the specified markdown text.
+     *
+     * @param markdownText the specified markdown text
+     * @return HTML
+     */
+    private static String getHTML(final String markdownText) {
+        final String hash = DigestUtils.md5Hex(markdownText);
+        final JSONObject value = MD_CACHE.get(hash);
+        if (null == value) {
+            return null;
+        }
+
+        return value.optString("data");
+    }
+
+    /**
+     * Puts the specified HTML into cache.
+     *
+     * @param markdownText the specified markdown text
+     * @param html         the specified HTML
+     */
+    private static void putHTML(final String markdownText, final String html) {
+        final String hash = DigestUtils.md5Hex(markdownText);
+        final JSONObject value = new JSONObject();
+        value.put("data", html);
+        MD_CACHE.put(hash, value);
+    }
+}
