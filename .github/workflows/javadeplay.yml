@@ -36,5 +36,5 @@ jobs:
       - name: 运行 Java 应用程序
         run: |
           sshpass -p ${{ secrets.DEPLOY_PASSWORD }} ssh root@182.92.201.19 "sudo fuser -k -n tcp 8086"
-          sshpass -p ${{ secrets.DEPLOY_PASSWORD }} ssh root@182.92.201.19 "nohup java -jar /opt/ToolUtil-0.0.1-SNAPSHOT.jar > --server.port=8086 >> /tmp/Y6P2GRBHU2.log 2>&1 &"
+          sshpass -p ${{ secrets.DEPLOY_PASSWORD }} ssh root@182.92.201.19 "nohup java -jar /opt/ToolUtil-0.0.1-SNAPSHOT.jar > --server.port=8086 >> /opt/log.txt 2>&1 &"
            
