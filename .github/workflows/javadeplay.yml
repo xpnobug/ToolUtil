@@ -28,14 +28,8 @@ jobs:
           ls 
           sshpass -p ${{ secrets.DEPLOY_PASSWORD }} scp -o StrictHostKeyChecking=no -r target/ToolUtil-0.0.1-SNAPSHOT.jar root@182.92.201.19:/opt/
 
-        env:
-          #          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }} # 存储 GitHub Secrets 中的 SSH 私钥
-          #          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}   # 存储 GitHub Secrets 中的 SSH 公钥
-          REMOTE_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }} # 密码
-
       - name: 运行 Java 应用程序
         run: |
-          cd /
           sshpass -p ${{ secrets.DEPLOY_PASSWORD }} ssh root@182.92.201.19 "sudo fuser -k -n tcp 8086"
           sshpass -p ${{ secrets.DEPLOY_PASSWORD }} ssh root@182.92.201.19 "nohup java -jar /opt/ToolUtil-0.0.1-SNAPSHOT.jar > --server.port=8086 >> /opt/log.txt 2>&1 &"
            
