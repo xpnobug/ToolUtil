@@ -1,31 +1,15 @@
-/*
- * Bolo - A stable and beautiful blogging system based in Solo.
- * Copyright (c) 2020, https://github.com/adlered
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
 package com.reai.toolutil;
 
 import org.b3log.latke.util.CollectionUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 /**
  * @author 86136
  */
-@Configuration
+@Component
 public class Reais {
 
     public static String VERSION = "0.0.1";
@@ -39,6 +23,13 @@ public class Reais {
      */
     public static String userName;
     public static String emailPwd;
+
+
+    /**
+     * token
+     */
+    @Value("${BotToken}")
+    public static String authorization_header;
 
     /**
      * User-Agent.
@@ -90,10 +81,17 @@ public class Reais {
 
     @Value("${emailUserName}")
     public void setUserName(String userName) {
-        this.userName = userName;
+        Reais.userName = userName;
     }
     @Value("${emailPwd}")
     public void setEmailPwd(String emailPwd) {
-        this.emailPwd = emailPwd;
+        Reais.emailPwd = emailPwd;
     }
+
+
+    @Value("${BotToken}")
+    public void setAuthorizationHeader(String authorization_header) {
+        Reais.authorization_header = authorization_header;
+    }
+
 }

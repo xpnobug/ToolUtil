@@ -170,6 +170,20 @@
       <groupId>org.freemarker</groupId>
       <artifactId>freemarker</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>me.zhenxin</groupId>
+      <artifactId>qqbot-websocket</artifactId>
+      <version>1.2.0</version>
+    </dependency>
+
+<!--    加密工具-->
+    <dependency>
+      <groupId>com.github.ulisesbocchio</groupId>
+      <artifactId>jasypt-spring-boot-starter</artifactId>
+      <version>3.0.4</version>
+    </dependency>
+
   </dependencies>
 
   <build>

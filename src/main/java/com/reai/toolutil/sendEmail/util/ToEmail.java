@@ -36,7 +36,7 @@ public class ToEmail {
 
     @Test
     public void sendEmail() throws Exception {
-        String html = freemarkerView.createHtml();
+        String html = freemarkerView.createHtml(1);
         // 创建工厂类
         miniEmailFactory = new MiniEmailFactoryBuilder().build(
             MailConfig.config(Reais.userName, Reais.emailPwd)
@@ -48,6 +48,6 @@ public class ToEmail {
         List<String> sendSuccessToList = miniEmail
             .addBlindCarbonCopy(new String[]{TO_EMAIL})
             .send(TO_EMAILS, "自动备份通知", EmailContentTypeEnum.HTML, html);
-        System.out.println(sendSuccessToList);
+//        System.out.println(sendSuccessToList);
     }
 }

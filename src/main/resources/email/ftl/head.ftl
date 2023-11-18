@@ -15,7 +15,7 @@
 <div style="margin:10px 0 0; padding:0 10px; font-size:18px; color:#363c4c;">
 <pre>
 <p>
-备份成功！！！
+${itooList.content}
 </p>
 </pre>
 </div>

@@ -15,7 +15,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-
 import freemarker.template.TemplateException;
 import org.springframework.stereotype.Service;
 
@@ -24,42 +23,77 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class FreemarkerView {
-    public String createHtml() throws Exception {
+
+    public String createHtml(int template) throws Exception {
         Date date = new Date();
         DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         String time = format.format(date);
         Map<String, Object> root = new HashMap<>();
-        Itoo itooList = new Itoo(
-            "自动备份通知",
-            time,
-            "欢迎使用",
-            "",
-            "https://blog.reaicc.com",
-            "https://blog.reaicc.com/img/Cat.svg",
-            "",
-            " ",
-            "",
-            "2877406366@qq.com"
-        );
+        Itoo itooList = null;
+
+        switch (template) {
+            case 1:
+                itooList = new Itoo(
+                    "自动备份通知",
+                    time,
+                    "欢迎使用",
+                    "",
+                    "https://blog.reaicc.com",
+                    "https://blog.reaicc.com/img/Cat.svg",
+                    "",
+                    " ",
+                    "",
+                    "2877406366@qq.com",
+                    "备份成功"
+                );
+                break;
+            case 2:
+                itooList = new Itoo(
+                    "QQBot启动通知",
+                    time,
+                    "欢迎使用",
+                    "",
+                    "https://blog.reaicc.com",
+                    "https://blog.reaicc.com/img/Cat.svg",
+                    "",
+                    " ",
+                    "",
+                    "2877406366@qq.com",
+                    "QQBot启动成功"
+                );
+                break;
+            // 添加其他模板的处理逻辑
+            // case 3:
+            //     itooList = new Itoo(...);
+            //     break;
+            default:
+                // 默认情况，可以根据需求处理
+                break;
+        }
+
         root.put("itooList", itooList);
-        this.fprint("index.ftl", root,"Ares.html");
+
+        // 调用 fprint 方法保存 HTML 文件
+        this.fprint("index.ftl", root, "Ares.html");
+
+        // 返回生成的 HTML 字符串
         return this.processTemplateToString("index.ftl", root);
     }
 
-
     /**
      * 获取模板信息
+     *
      * @param name 模板名
      * @return
      */
-    public Template getTemplate(String name){
+    public Template getTemplate(String name) {
         //通过freemarkerd COnfiguration读取相应的ftl
         Configuration cfg = new Configuration();
         //设定去哪里读取相应的ftl模板文件，指定模板路径
         cfg.setClassForTemplateLoading(this.getClass(), "/email/ftl");
         try {
             //在模板文件目录中找到名称为name的文件
-            Template template =  cfg.getTemplate(name);
+            Template template = cfg.getTemplate(name);
             return template;
         } catch (IOException e) {
             e.printStackTrace();
@@ -67,39 +101,40 @@ public class FreemarkerView {
         return null;
     }
 
-
-    public String processTemplateToString(String name, Map<String, Object> root) throws TemplateException, IOException {
+    public String processTemplateToString(String name, Map<String, Object> root)
+        throws TemplateException, IOException {
         Template template = this.getTemplate(name);
         StringWriter stringWriter = new StringWriter();
         template.process(root, stringWriter);
         return stringWriter.toString();
     }
 
-
-
     /**
      * 输出到控制台
+     *
      * @param name
      * @param root
      * @throws TemplateException
      * @throws IOException
      */
-    public void print(String name,Map<String,Object> root) throws TemplateException, IOException {
+    public void print(String name, Map<String, Object> root) throws TemplateException, IOException {
         //通过Template可以将模板文件输出到相应的流
         Template template = this.getTemplate(name);
         template.process(root, new PrintWriter(System.out));
     }
+
     /**
      * 输出到文件中
+     *
      * @param name
      * @param root
      * @throws TemplateException
      * @throws IOException
      */
-    public void fprint(String name,Map<String,Object> root,String outFile)  {
-        FileWriter out=null;
+    public void fprint(String name, Map<String, Object> root, String outFile) {
+        FileWriter out = null;
         try {
-            out = new FileWriter(new File("E:/"+outFile));
+            out = new FileWriter(new File("E:/" + outFile));
             //获取模板
             Template template = this.getTemplate(name);
             //设置模板编码
@@ -113,9 +148,9 @@ public class FreemarkerView {
         } catch (IOException e) {
             e.printStackTrace();
 
-        }finally{
+        } finally {
             try {
-                if (out!=null) {
+                if (out != null) {
                     out.close();
                 }
             } catch (Exception e2) {

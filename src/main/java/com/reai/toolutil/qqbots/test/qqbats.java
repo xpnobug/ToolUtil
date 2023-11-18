@@ -1,13 +1,14 @@
-package com.reai.qqbots.test;
+package com.reai.toolutil.qqbots.test;
 
 import com.alibaba.fastjson.JSONObject;
-import com.reai.toolutil.Reais;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 import jodd.http.HttpRequest;
 import jodd.http.HttpResponse;
 import com.alibaba.fastjson.JSON;
+
+
 
 public class qqbats {
 

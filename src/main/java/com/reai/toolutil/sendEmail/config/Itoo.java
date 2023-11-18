@@ -13,9 +13,11 @@ public class Itoo {
     public String QRcode;
     public String email;
 
+    public String content;
+
     public Itoo(String title, String date, String welcome, String notice, String logolink,
         String logo,
-        String teacherlink, String teacherword, String QRcode, String email) {
+        String teacherlink, String teacherword, String QRcode, String email, String content) {
         this.title = title;
         this.date = date;
         this.welcome = welcome;
@@ -26,6 +28,7 @@ public class Itoo {
         this.teacherword = teacherword;
         this.QRcode = QRcode;
         this.email = email;
+        this.content = content;
     }
 
     public String getTitle() {
@@ -106,5 +109,13 @@ public class Itoo {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 }
