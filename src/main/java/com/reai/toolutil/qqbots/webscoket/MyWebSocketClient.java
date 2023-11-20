@@ -4,6 +4,7 @@ import com.reai.toolutil.Reais;
 import com.reai.toolutil.qqbots.base.config.BaseFinal;
 import com.reai.toolutil.qqbots.base.config.BotEvent;
 import com.reai.toolutil.qqbots.webscoket.impl.BotBaseFeatureMsg;
+import com.reai.toolutil.qqbots.webscoket.impl.BotBirdsMsg;
 import com.reai.toolutil.qqbots.webscoket.impl.BotChatGptMsg;
 import com.reai.toolutil.qqbots.webscoket.impl.BotMobaHbMsg;
 import com.reai.toolutil.qqbots.webscoket.impl.BotNewsMsg;
@@ -120,6 +121,8 @@ public class MyWebSocketClient extends WebSocketClient {
         BotMobaHbMsg.getHaiBaoMsg(content, msgId, sendMsgUrl);
         //定时新闻
         BotNewsMsg.newsv5(sendMsgUrl, content);
+        //《飞鸟集》
+        BotBirdsMsg.sendMsg(content, msgId, sendMsgUrl, id);
         //随机图片
         MessageImpl.getRandomPic(sendMsgUrl, content);
 

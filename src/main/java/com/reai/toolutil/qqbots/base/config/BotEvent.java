@@ -258,6 +258,22 @@ public class BotEvent {
         return null;
     }
 
+    public static String getBirds() {
+        final HttpResponse res = HttpRequest.get(
+                "https://api.mu-jie.cc/stray-birds/range?type=json")
+            .header("Content-Type", "application/json")
+            .send();
+        if (HttpServletResponse.SC_OK != res.statusCode()) {
+            System.out.println("请求失败，状态码：" + res.statusCode());
+        } else {
+            res.charset("UTF-8");
+            String responseBody = res.bodyText();
+            JSONObject jsonObject = new JSONObject(responseBody);
+            return jsonObject.get("cn").toString();
+        }
+        return null;
+    }
+
     /**
      * 压缩字节数组
      *
