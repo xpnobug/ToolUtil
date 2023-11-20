@@ -25,7 +25,7 @@ public class BotNewsMsg {
         }
     }
 
-    private static void startScheduledTask(String sendMsgUrl) {
+    public static void startScheduledTask(String sendMsgUrl) {
         if (scheduler != null && !scheduler.isShutdown()) {
             System.out.println("定时新闻已启用，无需重复启动。");
             JSONObject newMsg = new JSONObject();
@@ -34,13 +34,28 @@ public class BotNewsMsg {
             return;
         }
 
+        // 获取当前时间和早上9点时间
         LocalTime now = LocalTime.now();
-        LocalTime midnight = LocalTime.of(0, 0);
-        long initialDelay = Duration.between(now, midnight).toMinutes();
+        LocalTime scheduledTime = LocalTime.of(9, 0);
 
+        // 计算直到下一次早上9点的初始延迟
+        long initialDelay = calculateInitialDelay(now, scheduledTime);
+
+        // 如果当前时间已经过了早上9点，将下一次任务推迟到明天
+        if (now.isAfter(scheduledTime)) {
+            initialDelay += TimeUnit.DAYS.toMinutes(1);
+        }
+
+        // 创建一个新的定时线程池
         scheduler = Executors.newScheduledThreadPool(1);
+
+        // 启动定时任务，每天早上9点执行一次
         scheduler.scheduleAtFixedRate(() -> sendScheduledMessage(sendMsgUrl), initialDelay,
-            TimeUnit.DAYS.toSeconds(1), TimeUnit.SECONDS);
+            TimeUnit.DAYS.toMinutes(1), TimeUnit.MINUTES);
+    }
+
+    private static long calculateInitialDelay(LocalTime currentTime, LocalTime scheduledTime) {
+        return Duration.between(currentTime, scheduledTime).toMinutes();
     }
 
     private static void stopScheduledTask(String sendMsgUrl) {
@@ -60,7 +75,7 @@ public class BotNewsMsg {
 
     private static void sendScheduledMessage(String sendMsgUrl) {
         JSONObject newMsg = new JSONObject();
-        newMsg.put("content", "定时新闻已启用，我会每天凌晨12点准时发送，需要关闭请发送：关闭定时新闻");
+        newMsg.put("content", "定时新闻已启用,需要关闭请发送：关闭定时新闻");
         newMsg.put("image", "https://zj.v.api.aa1.cn/api/60s-v2/?cc=%E5%B0%8F%E4%B8%83");
         BotEvent.sendMsg(sendMsgUrl, newMsg);
     }

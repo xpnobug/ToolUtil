@@ -9,6 +9,7 @@ import com.reai.toolutil.qqbots.webscoket.impl.BotMobaHbMsg;
 import com.reai.toolutil.qqbots.webscoket.impl.BotNewsMsg;
 import com.reai.toolutil.qqbots.webscoket.impl.BotWeatherMsg;
 import com.reai.toolutil.qqbots.webscoket.impl.MessageImpl;
+import com.reai.toolutil.qqbots.webscoket.impl.ScheduledTaskMsg;
 import java.util.Random;
 import org.json.JSONObject;
 import org.java_websocket.client.WebSocketClient;
@@ -114,7 +115,7 @@ public class MyWebSocketClient extends WebSocketClient {
         //音乐
         MessageImpl.getMusic(content, msgId, sendMsgUrl, id);
         //全球天气
-        BotWeatherMsg.getWeatherMsg(content, msgId, sendMsgUrl);
+        BotWeatherMsg.startScheduledTask(content, msgId, sendMsgUrl);
         //王者海报
         BotMobaHbMsg.getHaiBaoMsg(content, msgId, sendMsgUrl);
         //定时新闻
@@ -122,6 +123,7 @@ public class MyWebSocketClient extends WebSocketClient {
         //随机图片
         MessageImpl.getRandomPic(sendMsgUrl, content);
 
+        ScheduledTaskMsg.sendMsg(content, msgId, sendMsgUrl);
     }
 
     @Override
