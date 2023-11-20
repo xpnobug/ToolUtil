@@ -16,16 +16,16 @@ import org.json.JSONObject;
 public class BotWeatherMsg {
 
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
+    private static boolean isFirstTime = true;
 
     public static void startScheduledTask(String content, String msgId, String sendMsgUrl) {
+
         // 如果content有数据，则不执行定时任务
-        if (content != null && !content.trim().isEmpty()) {
-            sendMessage(content,msgId,sendMsgUrl);
-            System.out.println("content有数据，不执行定时任务。");
-            return;
-        }
-        if (scheduler != null && !scheduler.isShutdown()) {
+        if (isFirstTime) {
+            sendMessage(content, msgId, sendMsgUrl);
+            System.out.println("第一次进入，执行初始化任务。");
+            isFirstTime = false;
+        } else if (scheduler != null && !scheduler.isShutdown()) {
             System.out.println("定时天气已启用，无需重复启动。");
             JSONObject newMsg = new JSONObject();
             newMsg.put("content", "定时天气已启用，无需重复启动。");
